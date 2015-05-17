@@ -1,6 +1,6 @@
-# getsumChecksums v1.0.0
+# getsumChecksums v1.0.1
 
-Gathers the MD5 hash of all files in a directory, including subdirectories.
+Gathers the MD5 or SHA1 hash of all files in a directory, including subdirectories.
 
 ## Expansion
 

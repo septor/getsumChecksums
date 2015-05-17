@@ -19,9 +19,13 @@ namespace getsumChecksums
             try
             {
                 lblRootPath.Text = Settings.Default.lastPath;
+                cmbHashType.Text = Settings.Default.hashType;
                 ListFiles(Settings.Default.lastPath);
             }
             catch { }
+
+            if (cmbHashType.Text == "")
+                cmbHashType.Text = "MD5";
         }
 
         private void cmdBrowse_Click(object sender, EventArgs e)
@@ -31,11 +35,19 @@ namespace getsumChecksums
             if (result == DialogResult.OK)
             {
                 lblRootPath.Text = folderBrowser.SelectedPath.ToString();
+                lstFiles.Items.Clear();
                 ListFiles(folderBrowser.SelectedPath.ToString());
             }
 
             Settings.Default.lastPath = lblRootPath.Text;
+            Settings.Default.hashType = cmbHashType.Text;
             Settings.Default.Save();
+        }
+
+        private void cmdRescan_Click(object sender, EventArgs e)
+        {
+            lstFiles.Items.Clear();
+            ListFiles(lblRootPath.Text);
         }
 
         private void lstFiles_MouseDoubleClick(object sender, MouseEventArgs e)
@@ -43,6 +55,18 @@ namespace getsumChecksums
             if (lstFiles.SelectedItems.Count != 0)
                 Clipboard.SetText(lstFiles.SelectedItems[0].SubItems[2].Text);
         }
+
+        private void cmbHashType_TextChanged(object sender, EventArgs e)
+        {
+            Settings.Default.hashType = cmbHashType.Text;
+            Settings.Default.Save();
+        }
+
+        private void cmdClear_Click(object sender, EventArgs e)
+        {
+            lstFiles.Items.Clear();
+        }
+
         #region Custom Functions
         /// <summary>
         /// Get the MD5 checksum for a given file.
@@ -58,8 +82,21 @@ namespace getsumChecksums
         }
 
         /// <summary>
+        /// Get the SHA1 checksum for a given file.
+        /// </summary>
+        public static string sha1Hash(string filename)
+        {
+            if (File.Exists(filename))
+                using (var sha1 = SHA1.Create())
+                    using (var stream = File.OpenRead(filename))
+                        return BitConverter.ToString(sha1.ComputeHash(stream)).Replace("-", "").ToLower();
+            else
+                return null;
+        }
+
+        /// <summary>
         /// Recrusivly parse a directory for all files.
-        /// Place the file name, md5 checksum, and sub directory (if applicible) in a ListView (lstFiles).
+        /// Place the file name, md5/sha1 checksum, and sub directory (if applicible) in a ListView (lstFiles).
         /// </summary>
         public void ListFiles(string directoryPath)
         {
@@ -81,7 +118,14 @@ namespace getsumChecksums
                     if (directoryName == lblRootPath.Text)
                         directoryName = "";
 
-                    lstFiles.Items.Add(new ListViewItem(new string[] { file.Name, directoryName, md5Hash(file.FullName) }));
+                    if (Settings.Default.hashType == "MD5")
+                    {
+                        lstFiles.Items.Add(new ListViewItem(new string[] { file.Name, directoryName, md5Hash(file.FullName) }));
+                    }
+                    else if (Settings.Default.hashType == "SHA1")
+                    {
+                        lstFiles.Items.Add(new ListViewItem(new string[] { file.Name, directoryName, sha1Hash(file.FullName) }));
+                    }
                 }
             }
         }
